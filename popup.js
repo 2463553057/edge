@@ -668,14 +668,18 @@ class BookmarkSearch {
         const toggleIcon = btn.querySelector('.toggle-icon');
 
         if (folderItem.classList.contains('expanded')) {
+          // 收起文件夹
           folderItem.classList.remove('expanded');
           toggleIcon.textContent = '▶';
+          folderContent.style.display = 'none';
           folderItems.innerHTML = '';
           return;
         }
 
+        // 展开文件夹
         folderItem.classList.add('expanded');
         toggleIcon.textContent = '▼';
+        folderContent.style.display = 'block';
         folderItems.innerHTML = '<div class="loading">加载中...</div>';
 
         try {
