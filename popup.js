@@ -115,7 +115,9 @@ class BookmarkSearch {
         e.stopPropagation();
         const url = btn.dataset.url;
         const title = btn.dataset.title;
-        if (url) this.showQRCode(url, title);
+        if (url) {
+          this.showQRCode(url, title);
+        }
       });
     });
 
@@ -226,8 +228,8 @@ class BookmarkSearch {
 
   createBookmarkItem(bookmark, path, query) {
     const isFolder = !bookmark.url;
+    const showTime = this.sortBy.value === 'date';
     
-    // 返回 HTML 字符串而不是 DOM 元素
     return `
       <div class="bookmark-item ${isFolder ? 'folder-item' : 'bookmark-item'}">
         <div class="item-header">
@@ -237,6 +239,12 @@ class BookmarkSearch {
             <div class="item-path">${path}</div>
             ${bookmark.url ? `
               <div class="item-url">${this.highlight(bookmark.url, query)}</div>
+              ${showTime ? `
+                <div class="item-time">
+                  <span class="time-icon">🕒</span>
+                  ${this.formatDate(bookmark.dateAdded)}
+                </div>
+              ` : ''}
             ` : ''}
           </div>
           ${bookmark.url ? `
@@ -287,6 +295,74 @@ class BookmarkSearch {
     if (bookmark.title.toLowerCase().includes(query.toLowerCase())) score += 2;
     if (bookmark.url?.toLowerCase().includes(query.toLowerCase())) score += 1;
     return score;
+  }
+
+  formatDate(timestamp) {
+    const date = new Date(timestamp);
+    
+    // 始终显示完整的年月日时分
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false // 使用24小时制
+    }).replace(/\//g, '-'); // 将斜杠替换为横杠
+  }
+
+  showQRCode(url, title) {
+    // 创建二维码弹窗
+    const modal = document.createElement('div');
+    modal.className = 'qr-modal';
+    modal.innerHTML = `
+      <div class="qr-content">
+        <div class="qr-header">
+          <h3>分享链接</h3>
+          <button class="close-qr">×</button>
+        </div>
+        <div class="qr-code">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" 
+               alt="QR Code" 
+               title="${title}">
+        </div>
+        <div class="qr-title">${title}</div>
+        <div class="qr-url">${url}</div>
+      </div>
+    `;
+
+    // 添加到文档中
+    document.body.appendChild(modal);
+
+    // 添加显示动画
+    requestAnimationFrame(() => {
+      modal.classList.add('show');
+    });
+
+    // 绑定关闭事件
+    const closeBtn = modal.querySelector('.close-qr');
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // ESC 键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
   }
 }
 
@@ -538,9 +614,9 @@ class BookmarkStats {
   }
 
   showQRCode(url, title) {
-    // 显示二维码弹窗
+    // 创建二维码弹窗
     const modal = document.createElement('div');
-    modal.className = 'qr-modal show';
+    modal.className = 'qr-modal';
     modal.innerHTML = `
       <div class="qr-content">
         <div class="qr-header">
@@ -557,13 +633,37 @@ class BookmarkStats {
       </div>
     `;
 
+    // 添加到文档中
     document.body.appendChild(modal);
+
+    // 添加显示动画
+    requestAnimationFrame(() => {
+      modal.classList.add('show');
+    });
 
     // 绑定关闭事件
     const closeBtn = modal.querySelector('.close-qr');
-    closeBtn.addEventListener('click', () => modal.remove());
+    const closeModal = () => {
+      modal.classList.remove('show');
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
+
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // ESC 键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
     });
   }
 
