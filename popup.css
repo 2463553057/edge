@@ -693,7 +693,7 @@ body {
   transition: all 0.3s ease-in-out;
 }
 
-/* 优化文件夹内的滚��区域 */
+/* 优化文件夹内的滚区域 */
 .results-list .folder-items {
   max-height: 250px;  /* 限制最大高度 */
   margin: 8px 0;
@@ -1213,5 +1213,116 @@ body.dark-theme {
 
 .dark-theme .footer-time {
   color: #808080;
+}
+
+/* 添加检查失效链接相关样式 */
+.check-status {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.progress-info {
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #0078D4;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: right;
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+}
+
+.broken-links-list {
+  margin-top: 16px;
+}
+
+.broken-link-item {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.broken-link-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.broken-link-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.broken-link-url {
+  color: #666;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.broken-link-error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.broken-link-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.link-action {
+  padding: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.link-action:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 深色主题适配 */
+.dark-theme .check-status {
+  background: #2d2d2d;
+}
+
+.dark-theme .progress-bar {
+  background: #404040;
+}
+
+.dark-theme .broken-link-item {
+  background: #2d2d2d;
+}
+
+.dark-theme .broken-link-url {
+  color: #999;
+}
+
+.dark-theme .link-action:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
  

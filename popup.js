@@ -245,8 +245,8 @@ class BookmarkSearch {
   }
 
   async checkBrokenLinks() {
-    const statsPanel = document.getElementById('statsPanel');
-    const statsContent = statsPanel.querySelector('.stats-content');
+    const statsPage = document.querySelector('.stats-page');
+    const statsContent = statsPage.querySelector('.stats-content');
     
     try {
       // 更新界面显示检查状态
@@ -254,7 +254,7 @@ class BookmarkSearch {
         <div class="check-status">
           <div class="progress-info">正在检查链接...</div>
           <div class="progress-bar">
-            <div class="progress-fill"></div>
+            <div class="progress-fill" style="width: 0%"></div>
           </div>
           <div class="progress-text">0%</div>
         </div>
@@ -276,7 +276,29 @@ class BookmarkSearch {
       const batchSize = 5;
       for (let i = 0; i < bookmarks.length; i += batchSize) {
         const batch = bookmarks.slice(i, i + batchSize);
-        const results = await Promise.all(batch.map(bookmark => this.checkLink(bookmark)));
+        const results = await Promise.all(
+          batch.map(async bookmark => {
+            try {
+              const response = await fetch(bookmark.url, {
+                method: 'HEAD',
+                mode: 'no-cors',
+                cache: 'no-cache',
+                timeout: 5000
+              });
+              return {
+                bookmark,
+                broken: !response.ok,
+                status: response.status
+              };
+            } catch (error) {
+              return {
+                bookmark,
+                broken: true,
+                error: error.message
+              };
+            }
+          })
+        );
         
         checked += batch.length;
         brokenLinks = brokenLinks.concat(results.filter(result => result.broken));
@@ -320,28 +342,6 @@ class BookmarkSearch {
     return bookmarks;
   }
 
-  async checkLink(bookmark) {
-    try {
-      const response = await fetch(bookmark.url, {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache',
-      });
-      
-      return {
-        bookmark,
-        broken: !response.ok,
-        status: response.status
-      };
-    } catch (error) {
-      return {
-        bookmark,
-        broken: true,
-        error: error.message
-      };
-    }
-  }
-
   updateBrokenLinksList(container, brokenLinks) {
     container.innerHTML = brokenLinks.length ? brokenLinks.map(item => `
       <div class="broken-link-item">
@@ -355,7 +355,7 @@ class BookmarkSearch {
           <button class="link-action" data-action="delete" data-id="${item.bookmark.id}" title="删除书签">🗑️</button>
         </div>
       </div>
-    `).join('') : '<div class="empty-message">未现失效链接</div>';
+    `).join('') : '<div class="empty-message">未发现失效链接</div>';
 
     // 绑定操作按钮事件
     container.querySelectorAll('.link-action').forEach(btn => {
@@ -1387,7 +1387,7 @@ class BookmarkStats {
 
     nodes.forEach(processNode);
 
-    // 排序最近添加的书签
+    // 排序最��添加的书签
     stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
     stats.recent = stats.recent.slice(0, 10);
 
