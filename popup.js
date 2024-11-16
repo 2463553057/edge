@@ -38,6 +38,9 @@ class BookmarkSearch {
     
     // 初始化历史按钮
     this.initHistoryButton();
+
+    // 初始化主题
+    this.initTheme();
   }
 
   init() {
@@ -719,6 +722,11 @@ class BookmarkSearch {
         closeModal();
       }
     });
+
+    // 同步当前主题
+    if (document.body.classList.contains('dark-theme')) {
+      modal.classList.add('dark-theme');
+    }
   }
 
   bindItemEvents(container) {
@@ -1102,6 +1110,11 @@ class BookmarkSearch {
     });
 
     this.bindHistoryPageEvents(historyPage);
+
+    // 同步当前主题
+    if (document.body.classList.contains('dark-theme')) {
+      historyPage.classList.add('dark-theme');
+    }
   }
 
   // 添加时间格式化方法
@@ -1164,6 +1177,44 @@ class BookmarkSearch {
         } else {
           // 否则移除当前项
           item.remove();
+        }
+      });
+    });
+  }
+
+  initTheme() {
+    // 获取主题切换按钮
+    this.themeToggle = document.querySelector('.theme-toggle');
+    
+    // 从存储中获取主题设置
+    chrome.storage.local.get('theme', ({ theme }) => {
+      if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        this.themeToggle.textContent = '🌞';
+      } else {
+        this.themeToggle.textContent = '🌓';
+      }
+    });
+
+    // 绑定主题切换事件
+    this.themeToggle.addEventListener('click', () => {
+      const isDark = document.body.classList.toggle('dark-theme');
+      
+      // 更新按钮图标
+      this.themeToggle.textContent = isDark ? '🌞' : '🌓';
+      
+      // 保存主题设置
+      chrome.storage.local.set({
+        theme: isDark ? 'dark' : 'light'
+      });
+      
+      // 同步更新所有打开的弹窗
+      const modals = document.querySelectorAll('.qr-modal, .stats-page, .history-page');
+      modals.forEach(modal => {
+        if (isDark) {
+          modal.classList.add('dark-theme');
+        } else {
+          modal.classList.remove('dark-theme');
         }
       });
     });
@@ -1516,6 +1567,11 @@ class BookmarkStats {
         closeModal();
       }
     });
+
+    // 同步当前主题
+    if (document.body.classList.contains('dark-theme')) {
+      modal.classList.add('dark-theme');
+    }
   }
 
   updateDuplicateBookmarks(duplicates) {

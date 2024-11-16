@@ -1079,4 +1079,102 @@ body {
 .clear-all-btn:active {
   transform: translateY(0);
 }
+
+/* 深色主题样式 */
+body.dark-theme {
+  background: #1e1e1e;
+  color: #e0e0e0;
+}
+
+.dark-theme .container {
+  background: #1e1e1e;
+}
+
+.dark-theme .title-bar {
+  background: #2d2d2d;
+}
+
+.dark-theme #searchInput {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+.dark-theme .filter-bar {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.dark-theme .bookmark-item {
+  background: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .item-title {
+  color: #e0e0e0;
+}
+
+.dark-theme .item-path {
+  color: #999;
+}
+
+.dark-theme .item-url {
+  background: rgba(0, 120, 212, 0.1);
+}
+
+.dark-theme .folder-content {
+  background: #252525;
+  border-color: #404040;
+}
+
+.dark-theme .folder-item > .item-header {
+  background: #2d2d2d;
+}
+
+.dark-theme .empty-folder {
+  background: #252525;
+  color: #999;
+}
+
+.dark-theme .stats-page {
+  background: #1e1e1e;
+}
+
+.dark-theme .stats-card {
+  background: #2d2d2d;
+}
+
+.dark-theme .history-page {
+  background: #1e1e1e;
+}
+
+.dark-theme .history-item {
+  background: #2d2d2d;
+}
+
+.dark-theme .qr-modal .qr-content {
+  background: #2d2d2d;
+}
+
+.dark-theme .qr-url {
+  background: #252525;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+/* 主题切换按钮样式 */
+.theme-toggle {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
  
