@@ -405,7 +405,7 @@ class BookmarkSearch {
     try {
       console.log('Searching for:', query);
       
-      // 显示加状态
+      // 显示加��态
       this.resultsDiv.innerHTML = '<div class="loading">搜索中...</div>';
       
       if (!query) {
@@ -928,21 +928,60 @@ class BookmarkSearch {
     });
   }
 
-  // 加载搜索历史
+  // 修改加载搜索历史方法
   async loadSearchHistory() {
     try {
       const result = await chrome.storage.local.get('searchHistory');
-      this.searchHistory = result.searchHistory || [];
-      console.log('Loaded search history:', this.searchHistory);  // 调试日志
+      
+      // 验证并清理历史数据
+      if (Array.isArray(result.searchHistory)) {
+        this.searchHistory = result.searchHistory
+          .filter(item => {
+            // 验证数据结构的完整性
+            return item 
+              && typeof item === 'object'
+              && typeof item.query === 'string'
+              && typeof item.count === 'number'
+              && typeof item.lastSearchTime === 'number'
+              && item.query.trim().length > 0;
+          })
+          .map(item => ({
+            // 确保数据格式统一
+            query: item.query.trim(),
+            count: Math.max(1, parseInt(item.count) || 1),
+            lastSearchTime: parseInt(item.lastSearchTime) || Date.now()
+          }));
+      } else {
+        this.searchHistory = [];
+      }
+
+      // 去重
+      const seen = new Set();
+      this.searchHistory = this.searchHistory.filter(item => {
+        const key = item.query.toLowerCase();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+      // 限制数量
+      this.searchHistory = this.searchHistory.slice(0, 10);
+
+      // 保存清理后的数据
+      await chrome.storage.local.set({ searchHistory: this.searchHistory });
+
+      console.log('Loaded and cleaned search history:', this.searchHistory);
     } catch (error) {
       console.error('Failed to load search history:', error);
       this.searchHistory = [];
     }
   }
 
-  // 保存搜索历史
+  // 修改保存搜索历史方法
   async saveSearchHistory(query) {
-    if (!query?.trim()) return;  // 添加可选链操作符
+    if (!query?.trim()) return;
     
     try {
       // 确保 searchHistory 是数组
@@ -950,19 +989,23 @@ class BookmarkSearch {
         this.searchHistory = [];
       }
 
+      const cleanQuery = query.trim();
       // 查找是否已存在该搜索词
       const existingIndex = this.searchHistory.findIndex(item => 
-        item?.query?.toLowerCase() === query.toLowerCase()  // 添加安全检查
+        item?.query?.toLowerCase() === cleanQuery.toLowerCase()
       );
       
       if (existingIndex !== -1) {
-        // 如果存在，增加计数
-        this.searchHistory[existingIndex].count += 1;
-        this.searchHistory[existingIndex].lastSearchTime = Date.now();
+        // 如果存在，增加计数并更新时间
+        this.searchHistory[existingIndex] = {
+          query: cleanQuery,
+          count: (this.searchHistory[existingIndex].count || 0) + 1,
+          lastSearchTime: Date.now()
+        };
       } else {
         // 如果不存在，添加新记录
         this.searchHistory.unshift({
-          query: query,
+          query: cleanQuery,
           count: 1,
           lastSearchTime: Date.now()
         });
@@ -1230,7 +1273,7 @@ class BookmarkStats {
     this.recentBookmarks = stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
     this.updateRecentBookmarksList();
 
-    // 新重复书签列表
+    // ��重复书签列表
     this.updateDuplicateBookmarks(stats.duplicates);
   }
 
