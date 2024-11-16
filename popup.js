@@ -30,22 +30,14 @@ class BookmarkSearch {
     // 绑定tooltip事件
     this.handleTooltip = this.handleTooltip.bind(this);
 
-    // 添加搜索历史
+    // 移除搜索框的历史记录相关事件
     this.searchHistory = [];
     this.loadSearchHistory();
-    
-    // 添加节流的搜索历史保存函数
-    this.throttledSaveHistory = throttle(this.saveSearchHistory.bind(this), 1000);
-    
-    // 添加防抖的搜索历史显示函数
-    this.debouncedShowHistory = debounce(this.showSearchHistory.bind(this), 200);
-
-    // 创建搜索历史下拉框
-    this.createSearchHistoryDropdown();
-
-    // 添加历史记录分页配置
-    this.historyPageSize = 5; // 每页显示5条历史记录
+    this.historyPageSize = 5;
     this.historyCurrentPage = 1;
+    
+    // 初始化历史按钮
+    this.initHistoryButton();
   }
 
   init() {
@@ -409,27 +401,24 @@ class BookmarkSearch {
 
   async handleSearch() {
     const query = this.searchInput.value.trim();
-    if (query) {
-      // 使用节流后的保存方法
-      await this.throttledSaveHistory(query);
-    }
+    
     try {
       console.log('Searching for:', query);
       
-      // 显示加载状态
+      // 显示加状态
       this.resultsDiv.innerHTML = '<div class="loading">搜索中...</div>';
-      
-      const bookmarks = await chrome.bookmarks.search({});
       
       if (!query) {
         this.resultsDiv.innerHTML = '<div class="empty-state">请输入搜索关键词</div>';
         return;
       }
 
+      // 修改这里：直接传入查询词
+      const bookmarks = await chrome.bookmarks.search(query);
+
+      // 过滤结果
       let filteredBookmarks = bookmarks.filter(bookmark => 
-        (bookmark.title.toLowerCase().includes(query.toLowerCase()) || 
-         bookmark.url?.toLowerCase().includes(query.toLowerCase())) &&
-        (this.showFolders.checked || bookmark.url)
+        this.showFolders.checked || bookmark.url  // 如果显示文件夹，或者是书签
       );
 
       filteredBookmarks = this.sortBookmarks(filteredBookmarks, this.sortBy.value, query);
@@ -440,6 +429,11 @@ class BookmarkSearch {
         return;
       }
 
+      // 保存搜索历史
+      if (query) {
+        await this.saveSearchHistory(query);
+      }
+
       const startIndex = (this.currentPage - 1) * this.pageSize;
       const endIndex = startIndex + this.pageSize;
       const pageItems = this.searchResults.slice(startIndex, endIndex);
@@ -447,7 +441,7 @@ class BookmarkSearch {
 
       // 构建搜索结果
       let resultsHtml = `
-        <div class="results-header">找到 ${this.searchResults.length} 个结果</div>
+        <div class="results-header">找 ${this.searchResults.length} 个结果</div>
         <div class="results-list">
           ${(await Promise.all(pageItems.map(async bookmark => {
             const path = await this.getBookmarkPath(bookmark.id);
@@ -583,7 +577,7 @@ class BookmarkSearch {
   formatDate(timestamp) {
     const date = new Date(timestamp);
     
-    // 始终显示完整的年月日时分
+    // 始终显示完整的年月日时��
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -869,154 +863,172 @@ class BookmarkSearch {
 
   // 保存搜索历史
   async saveSearchHistory(query) {
-    if (!query.trim()) return;
-    
-    // 去重并限制数量
-    this.searchHistory = [query, ...this.searchHistory.filter(item => item !== query)].slice(0, 10);
+    if (!query?.trim()) return;  // 添加可选链操作符
     
     try {
+      // 确保 searchHistory 是数组
+      if (!Array.isArray(this.searchHistory)) {
+        this.searchHistory = [];
+      }
+
+      // 查找是否已存在该搜索词
+      const existingIndex = this.searchHistory.findIndex(item => 
+        item?.query?.toLowerCase() === query.toLowerCase()  // 添加安全检查
+      );
+      
+      if (existingIndex !== -1) {
+        // 如果存在，增加计数
+        this.searchHistory[existingIndex].count += 1;
+        this.searchHistory[existingIndex].lastSearchTime = Date.now();
+      } else {
+        // 如果不存在，添加新记录
+        this.searchHistory.unshift({
+          query: query,
+          count: 1,
+          lastSearchTime: Date.now()
+        });
+      }
+      
+      // 限制数量为10条
+      this.searchHistory = this.searchHistory.slice(0, 10);
+      
       await chrome.storage.local.set({ searchHistory: this.searchHistory });
-      console.log('Saved search history:', this.searchHistory);  // 调试日志
+      console.log('Saved search history:', this.searchHistory);
     } catch (error) {
       console.error('Failed to save search history:', error);
     }
   }
 
-  // 创建搜索历史下拉框
-  createSearchHistoryDropdown() {
-    const dropdown = document.createElement('div');
-    dropdown.className = 'search-history-dropdown';
-    dropdown.style.display = 'none';
+  // 修改历史按钮初始化方法
+  initHistoryButton() {
+    // 创建历史记录按钮
+    const historyBtn = document.createElement('button');
+    historyBtn.className = 'toolbar-btn history-btn';
+    historyBtn.innerHTML = '📜';
+    historyBtn.title = '搜索历史';
     
-    this.searchInput.parentNode.appendChild(dropdown);
-    
-    // 输入框获得焦点时显示历史记录
-    this.searchInput.addEventListener('focus', () => {
-      if (this.searchHistory && this.searchHistory.length > 0) {
-        this.debouncedShowHistory(dropdown);
-      }
-    });
+    // 将按钮添加到工具栏
+    const toolbarRight = document.querySelector('.window-controls');
+    if (toolbarRight) {
+      toolbarRight.insertBefore(historyBtn, toolbarRight.firstChild);
+    }
 
-    // 输入框输入时也显示历史记录
-    this.searchInput.addEventListener('input', () => {
-      if (this.searchHistory && this.searchHistory.length > 0) {
-        this.debouncedShowHistory(dropdown);
-      }
-    });
-    
-    // 点击其他地方时隐藏下拉框
-    let closeTimeout;
-    document.addEventListener('click', (e) => {
-      if (!this.searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-        closeTimeout = setTimeout(() => {
-          dropdown.style.display = 'none';
-        }, 200);
-      }
-    });
-
-    // 鼠标移入下拉框时取消关闭
-    dropdown.addEventListener('mouseenter', () => {
-      clearTimeout(closeTimeout);
-    });
-
-    // 鼠标移出下拉框时延迟关闭
-    dropdown.addEventListener('mouseleave', () => {
-      closeTimeout = setTimeout(() => {
-        if (!this.searchInput.matches(':focus')) {
-          dropdown.style.display = 'none';
-        }
-      }, 200);
+    // 绑定点击事件 - 切换到历史页面
+    historyBtn.addEventListener('click', () => {
+      this.showHistoryPage();
     });
   }
 
-  // 显示搜索历史
-  showSearchHistory(dropdown) {
-    if (!this.searchHistory || this.searchHistory.length === 0) {
-      dropdown.style.display = 'none';
-      return;
-    }
-
-    // 计算分页
-    const startIndex = (this.historyCurrentPage - 1) * this.historyPageSize;
-    const endIndex = startIndex + this.historyPageSize;
-    const pageItems = this.searchHistory.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(this.searchHistory.length / this.historyPageSize);
-
-    dropdown.innerHTML = `
-      <div class="history-items">
-        ${pageItems.map(query => `
-          <div class="history-item">
-            <span class="history-query">${this.escapeHtml(query)}</span>
-            <button class="history-delete" data-query="${this.escapeHtml(query)}">×</button>
-          </div>
-        `).join('')}
-      </div>
-      ${totalPages > 1 ? `
-        <div class="history-pagination">
-          <button class="history-page-btn" data-action="prev" ${this.historyCurrentPage === 1 ? 'disabled' : ''}>◀</button>
-          <span class="history-page-info">${this.historyCurrentPage}/${totalPages}</span>
-          <button class="history-page-btn" data-action="next" ${this.historyCurrentPage === totalPages ? 'disabled' : ''}>▶</button>
+  // 添加显示历史页面方法
+  showHistoryPage() {
+    document.querySelector('.container').style.display = 'none';
+    
+    const historyPage = document.createElement('div');
+    historyPage.className = 'history-page';
+    historyPage.innerHTML = `
+      <div class="title-bar">
+        <div class="title-content">
+          <button class="back-btn">◀</button>
+          <span>搜索历史</span>
         </div>
-      ` : ''}
+      </div>
+      <div class="history-content">
+        ${this.searchHistory.length === 0 ? 
+          '<div class="empty-history">暂无搜索历史</div>' :
+          `<div class="history-list">
+            ${this.searchHistory.map(item => `
+              <div class="history-item">
+                <div class="history-item-content">
+                  <span class="history-query">${this.escapeHtml(item.query)}</span>
+                  <div class="history-meta">
+                    <span class="history-count" title="搜索次数">🔍 ${item.count}次</span>
+                    <span class="history-time" title="最后搜索时间">
+                      ${this.formatTime(item.lastSearchTime)}
+                    </span>
+                  </div>
+                </div>
+                <div class="history-actions">
+                  <button class="history-search" title="搜索">🔍</button>
+                  <button class="history-delete" title="删除">×</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>`
+        }
+      </div>
     `;
     
-    dropdown.style.display = 'block';
-    
-    // 绑定历史记录点击事件
-    this.bindHistoryEvents(dropdown);
-    
-    // 绑定分页事件
-    if (totalPages > 1) {
-      this.bindHistoryPaginationEvents(dropdown, totalPages);
-    }
+    document.body.appendChild(historyPage);
+
+    historyPage.querySelector('.back-btn').addEventListener('click', () => {
+      historyPage.remove();
+      document.querySelector('.container').style.display = 'flex';
+    });
+
+    this.bindHistoryPageEvents(historyPage);
   }
 
-  // 添加历史记录分页事件绑定方法
-  bindHistoryPaginationEvents(dropdown, totalPages) {
-    dropdown.querySelectorAll('.history-page-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const action = btn.dataset.action;
-        
-        if (action === 'prev') {
-          this.historyCurrentPage = Math.max(1, this.historyCurrentPage - 1);
-        } else if (action === 'next') {
-          this.historyCurrentPage = Math.min(totalPages, this.historyCurrentPage + 1);
-        }
-        
-        this.showSearchHistory(dropdown);
-      });
+  // 添加时间格式化方法
+  formatTime(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    // 小于1分钟
+    if (diff < 60000) {
+      return '刚刚';
+    }
+    // 小于1小时
+    if (diff < 3600000) {
+      return `${Math.floor(diff / 60000)}分钟前`;
+    }
+    // 小于24小时
+    if (diff < 86400000) {
+      return `${Math.floor(diff / 3600000)}小时前`;
+    }
+    // 小于7天
+    if (diff < 604800000) {
+      return `${Math.floor(diff / 86400000)}天前`;
+    }
+    
+    // 超过7天显示具体日期
+    return new Date(timestamp).toLocaleDateString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
-  // 修改历史记录事件绑定方法
-  bindHistoryEvents(dropdown) {
-    dropdown.querySelectorAll('.history-item').forEach(item => {
-      const querySpan = item.querySelector('.history-query');
-      const deleteBtn = item.querySelector('.history-delete');
-
-      // 点击查询文本
-      querySpan.addEventListener('click', () => {
-        this.searchInput.value = querySpan.textContent;
-        this.handleSearch();
-        dropdown.style.display = 'none';
-        this.historyCurrentPage = 1; // 重置页码
-      });
+  // 修改历史页面事件绑定方法
+  bindHistoryPageEvents(historyPage) {
+    historyPage.querySelectorAll('.history-item').forEach(item => {
+      const query = item.querySelector('.history-query').textContent;
       
-      // 点击删除按钮
-      deleteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const query = deleteBtn.dataset.query;
-        this.searchHistory = this.searchHistory.filter(item => item !== query);
+      // 搜索按钮事件
+      item.querySelector('.history-search').addEventListener('click', () => {
+        this.searchInput.value = query;
+        this.handleSearch();
+        historyPage.remove();
+        document.querySelector('.container').style.display = 'flex';
+      });
+
+      // 修改删除按钮事件
+      item.querySelector('.history-delete').addEventListener('click', async () => {
+        // 使用 query 来查找和过滤历史记录
+        this.searchHistory = this.searchHistory.filter(historyItem => 
+          historyItem.query !== query
+        );
+        
         await chrome.storage.local.set({ searchHistory: this.searchHistory });
         
-        // 如果当前页没有数据了，回到上一页
-        const totalPages = Math.ceil(this.searchHistory.length / this.historyPageSize);
-        if (this.historyCurrentPage > totalPages) {
-          this.historyCurrentPage = Math.max(1, totalPages);
+        // 如果没有历史记录了，显示空状态
+        if (this.searchHistory.length === 0) {
+          historyPage.querySelector('.history-content').innerHTML = 
+            '<div class="empty-history">暂无搜索历史</div>';
+        } else {
+          // 否则移除当前项
+          item.remove();
         }
-        
-        this.showSearchHistory(dropdown);
       });
     });
   }
@@ -1139,7 +1151,7 @@ class BookmarkStats {
     this.recentBookmarks = stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
     this.updateRecentBookmarksList();
 
-    // 更新重复书签列表
+    // ���新重复书签列表
     this.updateDuplicateBookmarks(stats.duplicates);
   }
 
@@ -1460,7 +1472,7 @@ class VirtualList {
   constructor(options) {
     this.container = options.container;
     this.itemHeight = options.itemHeight;
-    this.buffer = options.buffer || 5; // 上���缓冲区数量
+    this.buffer = options.buffer || 5; // 上缓冲区量
     this.items = [];
     this.visibleItems = new Map();
     this.scrollTop = 0;
@@ -1515,7 +1527,7 @@ class VirtualList {
       Math.ceil((this.scrollTop + this.containerHeight) / this.itemHeight) + this.buffer
     );
 
-    // 移除不再可见的项
+    // 移除再可见的项
     for (const [index, element] of this.visibleItems.entries()) {
       if (index < startIndex || index >= endIndex) {
         element.remove();
