@@ -405,7 +405,7 @@ class BookmarkSearch {
     try {
       console.log('Searching for:', query);
       
-      // 显示加��态
+      // 显示加态
       this.resultsDiv.innerHTML = '<div class="loading">搜索中...</div>';
       
       if (!query) {
@@ -1053,6 +1053,9 @@ class BookmarkSearch {
           <button class="back-btn">◀</button>
           <span>搜索历史</span>
         </div>
+        <div class="title-actions">
+          <button class="clear-all-btn" title="清空历史">🗑️ 清空历史</button>
+        </div>
       </div>
       <div class="history-content">
         ${this.searchHistory.length === 0 ? 
@@ -1082,9 +1085,20 @@ class BookmarkSearch {
     
     document.body.appendChild(historyPage);
 
+    // 绑定返回按钮事件
     historyPage.querySelector('.back-btn').addEventListener('click', () => {
       historyPage.remove();
       document.querySelector('.container').style.display = 'flex';
+    });
+
+    // 绑定清空历史按钮事件
+    historyPage.querySelector('.clear-all-btn').addEventListener('click', async () => {
+      if (confirm('确定要清空所有搜索历史吗？')) {
+        this.searchHistory = [];
+        await chrome.storage.local.set({ searchHistory: [] });
+        historyPage.querySelector('.history-content').innerHTML = 
+          '<div class="empty-history">暂无搜索历史</div>';
+      }
     });
 
     this.bindHistoryPageEvents(historyPage);
@@ -1273,7 +1287,7 @@ class BookmarkStats {
     this.recentBookmarks = stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
     this.updateRecentBookmarksList();
 
-    // ��重复书签列表
+    // 重复书签列表
     this.updateDuplicateBookmarks(stats.duplicates);
   }
 
