@@ -41,72 +41,14 @@
       </select>
     </div>
 
-    <!-- 结果区域 -->
-    <div class="results-container">
-      <div id="results"></div>
-    </div>
+    <!-- 搜索结果区域 -->
+    <div id="results" class="results-container"></div>
+
+    <!-- 统计面板 -->
+    <div id="statsPanel" class="stats-panel"></div>
   </div>
 
-  <!-- 统计面板 -->
-  <div id="statsPanel" class="stats-panel">
-    <div class="stats-header">
-      <h2>收藏夹统计</h2>
-      <div class="stats-actions">
-        <button id="checkBrokenLinks" class="action-btn" title="检查失效链接">
-          <span class="btn-icon">🔍</span>
-          <span class="btn-text">检查失效链接</span>
-        </button>
-        <button class="close-stats" title="关闭">×</button>
-      </div>
-    </div>
-    <div class="stats-content">
-      <div class="stats-summary">
-        <div class="stat-item">
-          <div class="stat-icon">📚</div>
-          <div class="stat-label">总收藏数</div>
-          <div class="stat-value" id="totalBookmarks">-</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">📁</div>
-          <div class="stat-label">文件夹数</div>
-          <div class="stat-value" id="totalFolders">-</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">⚠️</div>
-          <div class="stat-label">失效链接</div>
-          <div class="stat-value" id="brokenCount">-</div>
-        </div>
-      </div>
-
-      <div class="stats-details">
-        <div class="stats-section">
-          <div class="section-header">
-            <h3>🔗 失效链接</h3>
-            <div class="check-status" id="checkStatus"></div>
-          </div>
-          <div id="brokenLinks" class="broken-list">
-            <div class="loading-message">点击上方按钮开始检查失效链接</div>
-          </div>
-        </div>
-
-        <div class="stats-section">
-          <div class="section-header">
-            <h3>🕒 最近添加</h3>
-          </div>
-          <div id="recentBookmarks" class="recent-list"></div>
-        </div>
-
-        <div class="stats-section">
-          <div class="section-header">
-            <h3>🔄 重复收藏</h3>
-          </div>
-          <div id="duplicateBookmarks" class="duplicate-list"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="bouncing-watermark">程序员98k</div>
+  <div class="watermark">程序员98k</div>
   <script src="popup.js"></script>
 </body>
 </html> 
