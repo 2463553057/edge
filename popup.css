@@ -646,4 +646,50 @@ body {
   max-height: 250px;  /* 限制最大高度 */
   margin: 8px 0;
 }
+
+/* 优化历史记录分页样式 */
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  gap: 8px;
+}
+
+.history-page-btn {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #0078D4;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.history-page-btn:hover:not([disabled]) {
+  background: rgba(0, 120, 212, 0.1);
+}
+
+.history-page-btn[disabled] {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.history-page-info {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 调整历史记录容器样式 */
+.history-items {
+  max-height: 160px; /* 减小最大高度，为分页留出空间 */
+  overflow-y: auto;
+}
+
+/* 优化历史记录项样式 */
+.history-item {
+  padding: 6px 12px; /* 稍微减小内边距 */
+}
  

@@ -34,8 +34,18 @@ class BookmarkSearch {
     this.searchHistory = [];
     this.loadSearchHistory();
     
+    // 添加节流的搜索历史保存函数
+    this.throttledSaveHistory = throttle(this.saveSearchHistory.bind(this), 1000);
+    
+    // 添加防抖的搜索历史显示函数
+    this.debouncedShowHistory = debounce(this.showSearchHistory.bind(this), 200);
+
     // 创建搜索历史下拉框
     this.createSearchHistoryDropdown();
+
+    // 添加历史记录分页配置
+    this.historyPageSize = 5; // 每页显示5条历史记录
+    this.historyCurrentPage = 1;
   }
 
   init() {
@@ -400,7 +410,8 @@ class BookmarkSearch {
   async handleSearch() {
     const query = this.searchInput.value.trim();
     if (query) {
-      await this.saveSearchHistory(query);
+      // 使用节流后的保存方法
+      await this.throttledSaveHistory(query);
     }
     try {
       console.log('Searching for:', query);
@@ -849,8 +860,10 @@ class BookmarkSearch {
     try {
       const result = await chrome.storage.local.get('searchHistory');
       this.searchHistory = result.searchHistory || [];
+      console.log('Loaded search history:', this.searchHistory);  // 调试日志
     } catch (error) {
       console.error('Failed to load search history:', error);
+      this.searchHistory = [];
     }
   }
 
@@ -863,6 +876,7 @@ class BookmarkSearch {
     
     try {
       await chrome.storage.local.set({ searchHistory: this.searchHistory });
+      console.log('Saved search history:', this.searchHistory);  // 调试日志
     } catch (error) {
       console.error('Failed to save search history:', error);
     }
@@ -876,45 +890,132 @@ class BookmarkSearch {
     
     this.searchInput.parentNode.appendChild(dropdown);
     
-    // 显示历史记录
+    // 输入框获得焦点时显示历史记录
     this.searchInput.addEventListener('focus', () => {
-      if (this.searchHistory.length > 0) {
-        this.showSearchHistory(dropdown);
+      if (this.searchHistory && this.searchHistory.length > 0) {
+        this.debouncedShowHistory(dropdown);
+      }
+    });
+
+    // 输入框输入时也显示历史记录
+    this.searchInput.addEventListener('input', () => {
+      if (this.searchHistory && this.searchHistory.length > 0) {
+        this.debouncedShowHistory(dropdown);
       }
     });
     
-    // 点击其他地方时隐藏
+    // 点击其他地方时隐藏下拉框
+    let closeTimeout;
     document.addEventListener('click', (e) => {
       if (!this.searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.style.display = 'none';
+        closeTimeout = setTimeout(() => {
+          dropdown.style.display = 'none';
+        }, 200);
       }
+    });
+
+    // 鼠标移入下拉框时取消关闭
+    dropdown.addEventListener('mouseenter', () => {
+      clearTimeout(closeTimeout);
+    });
+
+    // 鼠标移出下拉框时延迟关闭
+    dropdown.addEventListener('mouseleave', () => {
+      closeTimeout = setTimeout(() => {
+        if (!this.searchInput.matches(':focus')) {
+          dropdown.style.display = 'none';
+        }
+      }, 200);
     });
   }
 
   // 显示搜索历史
   showSearchHistory(dropdown) {
-    dropdown.innerHTML = this.searchHistory.map(query => `
-      <div class="history-item">
-        <span class="history-query">${query}</span>
-        <button class="history-delete" data-query="${query}">×</button>
+    if (!this.searchHistory || this.searchHistory.length === 0) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    // 计算分页
+    const startIndex = (this.historyCurrentPage - 1) * this.historyPageSize;
+    const endIndex = startIndex + this.historyPageSize;
+    const pageItems = this.searchHistory.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(this.searchHistory.length / this.historyPageSize);
+
+    dropdown.innerHTML = `
+      <div class="history-items">
+        ${pageItems.map(query => `
+          <div class="history-item">
+            <span class="history-query">${this.escapeHtml(query)}</span>
+            <button class="history-delete" data-query="${this.escapeHtml(query)}">×</button>
+          </div>
+        `).join('')}
       </div>
-    `).join('');
+      ${totalPages > 1 ? `
+        <div class="history-pagination">
+          <button class="history-page-btn" data-action="prev" ${this.historyCurrentPage === 1 ? 'disabled' : ''}>◀</button>
+          <span class="history-page-info">${this.historyCurrentPage}/${totalPages}</span>
+          <button class="history-page-btn" data-action="next" ${this.historyCurrentPage === totalPages ? 'disabled' : ''}>▶</button>
+        </div>
+      ` : ''}
+    `;
     
     dropdown.style.display = 'block';
     
-    // 绑定点击事件
+    // 绑定历史记录点击事件
+    this.bindHistoryEvents(dropdown);
+    
+    // 绑定分页事件
+    if (totalPages > 1) {
+      this.bindHistoryPaginationEvents(dropdown, totalPages);
+    }
+  }
+
+  // 添加历史记录分页事件绑定方法
+  bindHistoryPaginationEvents(dropdown, totalPages) {
+    dropdown.querySelectorAll('.history-page-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        
+        if (action === 'prev') {
+          this.historyCurrentPage = Math.max(1, this.historyCurrentPage - 1);
+        } else if (action === 'next') {
+          this.historyCurrentPage = Math.min(totalPages, this.historyCurrentPage + 1);
+        }
+        
+        this.showSearchHistory(dropdown);
+      });
+    });
+  }
+
+  // 修改历史记录事件绑定方法
+  bindHistoryEvents(dropdown) {
     dropdown.querySelectorAll('.history-item').forEach(item => {
-      item.querySelector('.history-query').addEventListener('click', () => {
-        this.searchInput.value = item.querySelector('.history-query').textContent;
+      const querySpan = item.querySelector('.history-query');
+      const deleteBtn = item.querySelector('.history-delete');
+
+      // 点击查询文本
+      querySpan.addEventListener('click', () => {
+        this.searchInput.value = querySpan.textContent;
         this.handleSearch();
         dropdown.style.display = 'none';
+        this.historyCurrentPage = 1; // 重置页码
       });
       
-      item.querySelector('.history-delete').addEventListener('click', async (e) => {
+      // 点击删除按钮
+      deleteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const query = e.target.dataset.query;
+        const query = deleteBtn.dataset.query;
         this.searchHistory = this.searchHistory.filter(item => item !== query);
         await chrome.storage.local.set({ searchHistory: this.searchHistory });
+        
+        // 如果当前页没有数据了，回到上一页
+        const totalPages = Math.ceil(this.searchHistory.length / this.historyPageSize);
+        if (this.historyCurrentPage > totalPages) {
+          this.historyCurrentPage = Math.max(1, totalPages);
+        }
+        
         this.showSearchHistory(dropdown);
       });
     });
@@ -1354,12 +1455,12 @@ document.addEventListener('DOMContentLoaded', () => {
   new WatermarkAnimation();
 }); 
 
-// 添加虚拟列表类
+// 添加虚拟列表
 class VirtualList {
   constructor(options) {
     this.container = options.container;
     this.itemHeight = options.itemHeight;
-    this.buffer = options.buffer || 5; // 上下缓冲区数量
+    this.buffer = options.buffer || 5; // 上���缓冲区数量
     this.items = [];
     this.visibleItems = new Map();
     this.scrollTop = 0;
@@ -1522,4 +1623,18 @@ class WatermarkAnimation {
       this.watermark.style.transform = `translate(${this.x}px, ${this.y}px) scale(1)`;
     }, 150);
   }
+} 
+
+// 添加节流函数
+function throttle(func, limit) {
+  let inThrottle;
+  let lastResult;
+  return function(...args) {
+    if (!inThrottle) {
+      lastResult = func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+    return lastResult;
+  };
 } 
