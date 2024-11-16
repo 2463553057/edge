@@ -29,6 +29,13 @@ class BookmarkSearch {
     
     // 绑定tooltip事件
     this.handleTooltip = this.handleTooltip.bind(this);
+
+    // 添加搜索历史
+    this.searchHistory = [];
+    this.loadSearchHistory();
+    
+    // 创建搜索历史下拉框
+    this.createSearchHistoryDropdown();
   }
 
   init() {
@@ -340,7 +347,7 @@ class BookmarkSearch {
           <button class="link-action" data-action="delete" data-id="${item.bookmark.id}" title="删除书签">🗑️</button>
         </div>
       </div>
-    `).join('') : '<div class="empty-message">未���现失效链接</div>';
+    `).join('') : '<div class="empty-message">未现失效链接</div>';
 
     // 绑定操作按钮事件
     container.querySelectorAll('.link-action').forEach(btn => {
@@ -391,8 +398,11 @@ class BookmarkSearch {
   }
 
   async handleSearch() {
+    const query = this.searchInput.value.trim();
+    if (query) {
+      await this.saveSearchHistory(query);
+    }
     try {
-      const query = this.searchInput.value.trim();
       console.log('Searching for:', query);
       
       // 显示加载状态
@@ -826,6 +836,82 @@ class BookmarkSearch {
             break;
         }
         this.handleSearch();
+      });
+    });
+  }
+
+  // 加载搜索历史
+  async loadSearchHistory() {
+    try {
+      const result = await chrome.storage.local.get('searchHistory');
+      this.searchHistory = result.searchHistory || [];
+    } catch (error) {
+      console.error('Failed to load search history:', error);
+    }
+  }
+
+  // 保存搜索历史
+  async saveSearchHistory(query) {
+    if (!query.trim()) return;
+    
+    // 去重并限制数量
+    this.searchHistory = [query, ...this.searchHistory.filter(item => item !== query)].slice(0, 10);
+    
+    try {
+      await chrome.storage.local.set({ searchHistory: this.searchHistory });
+    } catch (error) {
+      console.error('Failed to save search history:', error);
+    }
+  }
+
+  // 创建搜索历史下拉框
+  createSearchHistoryDropdown() {
+    const dropdown = document.createElement('div');
+    dropdown.className = 'search-history-dropdown';
+    dropdown.style.display = 'none';
+    
+    this.searchInput.parentNode.appendChild(dropdown);
+    
+    // 显示历史记录
+    this.searchInput.addEventListener('focus', () => {
+      if (this.searchHistory.length > 0) {
+        this.showSearchHistory(dropdown);
+      }
+    });
+    
+    // 点击其他地方时隐藏
+    document.addEventListener('click', (e) => {
+      if (!this.searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+  }
+
+  // 显示搜索历史
+  showSearchHistory(dropdown) {
+    dropdown.innerHTML = this.searchHistory.map(query => `
+      <div class="history-item">
+        <span class="history-query">${query}</span>
+        <button class="history-delete" data-query="${query}">×</button>
+      </div>
+    `).join('');
+    
+    dropdown.style.display = 'block';
+    
+    // 绑定点击事件
+    dropdown.querySelectorAll('.history-item').forEach(item => {
+      item.querySelector('.history-query').addEventListener('click', () => {
+        this.searchInput.value = item.querySelector('.history-query').textContent;
+        this.handleSearch();
+        dropdown.style.display = 'none';
+      });
+      
+      item.querySelector('.history-delete').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const query = e.target.dataset.query;
+        this.searchHistory = this.searchHistory.filter(item => item !== query);
+        await chrome.storage.local.set({ searchHistory: this.searchHistory });
+        this.showSearchHistory(dropdown);
       });
     });
   }
