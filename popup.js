@@ -41,6 +41,9 @@ class BookmarkSearch {
 
     // 初始化主题
     this.initTheme();
+
+    // 初始化 footer
+    this.initFooter();
   }
 
   init() {
@@ -1217,6 +1220,69 @@ class BookmarkSearch {
           modal.classList.remove('dark-theme');
         }
       });
+    });
+  }
+
+  initFooter() {
+    const quotes = [
+      "编程是一门艺术，而不仅仅是科学。",
+      "代码就像幽默，如果需要解释，那就不好笑了。",
+      "简单是最复杂的。",
+      "优秀的代码是它自己最好的文档。",
+      "调试比编写代码更难，所以如果你写代码写得很巧妙，那么你就没有足够的能力来调试它。",
+      "任何傻瓜都能写出计算机能理解的代码，优秀的程序员能写出人能理解的代码。",
+      "先让代码工作起来，然后再让它变得更好。",
+      "过早的优化是万恶之源。",
+      "如果建筑工人像程序员写代码一样盖房子，一只啄木鸟就能摧毁人类文明。",
+      "编程就像写诗，每个人都能写，但不是每个人都能写好。",
+      "代码重构就像整理房间，不是必须的，但能让生活更美好。",
+      "程序员的三大美德：懒惰、急躁和傲慢。",
+      "最好的代码是没有代码。",
+      "Bug不是bug，是特性。",
+      "生命太短暂，我用Python。",
+      "保持简单，保持傻瓜。",
+      "完美的代码不存在，但可以无限接近。",
+      "编程是思维的艺术，不只是敲键盘。",
+      "代码就像茶，需要适当的温度和时间。",
+      "没有什么问题是重启解决不了的，如果有，就重启两次。"
+    ];
+
+    const footerQuote = document.querySelector('.footer-quote');
+    const footerTime = document.querySelector('.footer-time');
+
+    // 显示随机名言
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    footerQuote.textContent = `"${randomQuote}"`;
+
+    // 更新时间
+    const updateTime = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('zh-CN', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const dateStr = now.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        weekday: 'long'
+      });
+      footerTime.textContent = `${dateStr} ${timeStr}`;
+    };
+
+    // 初始更新时间
+    updateTime();
+    // 每秒更新时间
+    setInterval(updateTime, 1000);
+
+    // 每次打开弹窗时随机更换名言
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'popupOpened') {
+        const newQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        footerQuote.textContent = `"${newQuote}"`;
+      }
     });
   }
 }

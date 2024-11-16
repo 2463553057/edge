@@ -4,6 +4,7 @@ let searchWindow = null;
 chrome.action.onClicked.addListener(() => {
   if (searchWindow) {
     chrome.windows.update(searchWindow.id, { focused: true });
+    chrome.runtime.sendMessage({ type: 'popupOpened' });
   } else {
     chrome.windows.create({
       url: 'popup.html',
@@ -15,6 +16,7 @@ chrome.action.onClicked.addListener(() => {
       top: Math.round((screen.height - 480) / 2)
     }, (window) => {
       searchWindow = window;
+      chrome.runtime.sendMessage({ type: 'popupOpened' });
     });
   }
 });
