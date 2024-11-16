@@ -621,4 +621,190 @@ mark {
   padding: 0 4px;
   border-radius: 2px;
 }
+
+/* 分享按钮样式 */
+.item-actions {
+  margin-top: 4px;
+}
+
+.share-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.share-btn:hover {
+  background: rgba(0, 120, 212, 0.1);
+  color: #0078D4;
+}
+
+.share-icon {
+  font-size: 14px;
+}
+
+/* 二维码弹窗样式优化 */
+.qr-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.qr-modal.show {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.qr-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  width: 300px;
+  animation: scaleIn 0.3s ease-out;
+}
+
+.qr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.qr-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+}
+
+.close-qr {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-qr:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.qr-code {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.qr-code img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.qr-title {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+  text-align: center;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.qr-url {
+  font-size: 12px;
+  color: #666;
+  word-break: break-all;
+  text-align: center;
+  padding: 0 16px;
+}
+
+/* 分享按钮样式 */
+.share-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.share-btn:hover {
+  background: rgba(0, 120, 212, 0.1);
+  color: #0078D4;
+}
+
+.share-icon {
+  font-size: 14px;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 480px) {
+  .qr-content {
+    width: 90%;
+    padding: 16px;
+  }
+
+  .qr-code {
+    padding: 12px;
+  }
+
+  .qr-title {
+    font-size: 13px;
+  }
+
+  .qr-url {
+    font-size: 11px;
+  }
+}
  

@@ -115,7 +115,14 @@ class BookmarkSearch {
         <div class="item-content">
           <div class="item-title">${this.highlight(bookmark.title, query)}</div>
           <div class="item-path">${path}</div>
-          ${bookmark.url ? `<div class="item-url">${this.highlight(bookmark.url, query)}</div>` : ''}
+          ${bookmark.url ? `
+            <div class="item-url">${this.highlight(bookmark.url, query)}</div>
+            <div class="item-actions">
+              <button class="share-btn" title="分享二维码">
+                <span class="share-icon">🔗</span>
+              </button>
+            </div>
+          ` : ''}
         </div>
         ${isFolder ? `
           <button class="folder-toggle" title="展开/收起">
@@ -132,7 +139,72 @@ class BookmarkSearch {
           <div class="folder-items"></div>
         </div>
       ` : ''}
+      
+      <!-- 二维码弹窗 -->
+      ${bookmark.url ? `
+        <div class="qr-modal">
+          <div class="qr-content">
+            <div class="qr-header">
+              <h3>分享链接</h3>
+              <button class="close-qr">×</button>
+            </div>
+            <div class="qr-code">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookmark.url)}" 
+                   alt="QR Code" 
+                   title="${bookmark.title}">
+            </div>
+            <div class="qr-title">${bookmark.title}</div>
+            <div class="qr-url">${bookmark.url}</div>
+          </div>
+        </div>
+      ` : ''}
     `;
+
+    if (!isFolder) {
+      // 绑定分享按钮事件
+      const shareBtn = item.querySelector('.share-btn');
+      const qrModal = item.querySelector('.qr-modal');
+      const closeQr = item.querySelector('.close-qr');
+      
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // 先关闭所有其他打开的二维码弹窗
+        document.querySelectorAll('.qr-modal.show').forEach(modal => {
+          if (modal !== qrModal) {
+            modal.classList.remove('show');
+          }
+        });
+        
+        // 显示当前二维码
+        qrModal.classList.add('show');
+      });
+
+      // 关闭二维码弹窗
+      closeQr.addEventListener('click', (e) => {
+        e.stopPropagation();
+        qrModal.classList.remove('show');
+      });
+
+      // 点击弹窗外部关闭
+      qrModal.addEventListener('click', (e) => {
+        if (e.target === qrModal) {
+          qrModal.classList.remove('show');
+        }
+      });
+
+      // ESC 键关闭当前打开的弹窗
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && qrModal.classList.contains('show')) {
+          qrModal.classList.remove('show');
+        }
+      });
+
+      // 书签点击处理
+      item.addEventListener('click', () => {
+        chrome.tabs.create({ url: bookmark.url });
+      });
+    }
 
     if (isFolder) {
       const toggleBtn = item.querySelector('.folder-toggle');
@@ -183,11 +255,6 @@ class BookmarkSearch {
         item.classList.remove('expanded');
         toggleIcon.textContent = '▶';
         folderItems.innerHTML = '';
-      });
-    } else {
-      // 书签点击处理
-      item.addEventListener('click', () => {
-        chrome.tabs.create({ url: bookmark.url });
       });
     }
 
