@@ -469,6 +469,9 @@ class BookmarkSearch {
 
   createBookmarkItem(bookmark, path, query) {
     const isFolder = !bookmark.url;
+    const showDate = this.sortBy.value === 'date';
+    const showRelevance = this.sortBy.value === 'relevance';
+    const relevanceScore = showRelevance ? this.getRelevanceScore(bookmark, query) : 0;
     
     return `
       <div class="bookmark-item ${isFolder ? 'folder-item' : ''}" data-id="${bookmark.id}">
@@ -478,6 +481,16 @@ class BookmarkSearch {
             <div class="item-title" data-full-text="${this.escapeHtml(bookmark.title)}">
               ${this.highlight(bookmark.title, query)}
             </div>
+            ${showRelevance ? `
+              <div class="item-relevance" title="相关度分数">
+                🎯 相关度: ${relevanceScore}分
+              </div>
+            ` : ''}
+            ${showDate ? `
+              <div class="item-date">
+                📅 ${this.formatDate(bookmark.dateAdded)}
+              </div>
+            ` : ''}
             <div class="item-path">${path}</div>
             ${bookmark.url ? `
               <div class="item-url hidden" data-url="${this.escapeHtml(bookmark.url)}">
@@ -569,15 +582,34 @@ class BookmarkSearch {
 
   getRelevanceScore(bookmark, query) {
     let score = 0;
-    if (bookmark.title.toLowerCase().includes(query.toLowerCase())) score += 2;
-    if (bookmark.url?.toLowerCase().includes(query.toLowerCase())) score += 1;
+    const lowerQuery = query.toLowerCase();
+    const lowerTitle = bookmark.title.toLowerCase();
+    const lowerUrl = bookmark.url?.toLowerCase() || '';
+
+    // 标题完全匹配
+    if (lowerTitle === lowerQuery) {
+      score += 10;
+    }
+    // 标题包含查询词
+    else if (lowerTitle.includes(lowerQuery)) {
+      score += 5;
+    }
+    // URL完全匹配
+    if (lowerUrl === lowerQuery) {
+      score += 8;
+    }
+    // URL包含查询词
+    else if (lowerUrl.includes(lowerQuery)) {
+      score += 3;
+    }
+    
     return score;
   }
 
   formatDate(timestamp) {
     const date = new Date(timestamp);
     
-    // 始终显示完整的年月日时��
+    // 始终显示完整的年月日时
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -603,17 +635,64 @@ class BookmarkSearch {
                alt="QR Code" 
                title="${title}">
         </div>
-        <div class="qr-title">${title}</div>
-        <div class="qr-url">${url}</div>
+        <div class="qr-info">
+          <div class="qr-title" title="${title}">${title}</div>
+          <div class="qr-url-container">
+            <input class="qr-url" type="text" value="${url}" readonly>
+            <button class="copy-url" title="复制链接">📋</button>
+          </div>
+          <div class="qr-tip">扫描二维码或复制链接分享</div>
+        </div>
       </div>
     `;
+
+    // 获取点击按钮的位置
+    const button = document.querySelector(`[data-url="${url}"]`);
+    const buttonRect = button.getBoundingClientRect();
 
     // 添加到文档中
     document.body.appendChild(modal);
 
+    // 计算弹窗位置
+    const qrContent = modal.querySelector('.qr-content');
+    const qrRect = qrContent.getBoundingClientRect();
+    
+    // 默认显示在按钮右侧
+    let left = buttonRect.right + 10;
+    let top = buttonRect.top - (qrRect.height / 2) + (buttonRect.height / 2);
+
+    // 如果右侧空间不足，显示在左侧
+    if (left + qrRect.width > window.innerWidth) {
+      left = buttonRect.left - qrRect.width - 10;
+    }
+
+    // 如果顶部超出视窗，调整到视窗内
+    if (top < 0) {
+      top = 10;
+    }
+
+    // 如果底部超出视窗，调整到视窗内
+    if (top + qrRect.height > window.innerHeight) {
+      top = window.innerHeight - qrRect.height - 10;
+    }
+
+    // 设置位置
+    qrContent.style.left = `${left}px`;
+    qrContent.style.top = `${top}px`;
+
     // 添加显示动画
     requestAnimationFrame(() => {
       modal.classList.add('show');
+    });
+
+    // 绑定复制链接功能
+    const copyBtn = modal.querySelector('.copy-url');
+    const urlInput = modal.querySelector('.qr-url');
+    copyBtn.addEventListener('click', () => {
+      urlInput.select();
+      document.execCommand('copy');
+      copyBtn.textContent = '✓';
+      setTimeout(() => copyBtn.textContent = '📋', 1000);
     });
 
     // 绑定关闭事件
@@ -1151,7 +1230,7 @@ class BookmarkStats {
     this.recentBookmarks = stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
     this.updateRecentBookmarksList();
 
-    // ���新重复书签列表
+    // 新重复书签列表
     this.updateDuplicateBookmarks(stats.duplicates);
   }
 
@@ -1296,17 +1375,64 @@ class BookmarkStats {
                alt="QR Code" 
                title="${title}">
         </div>
-        <div class="qr-title">${title}</div>
-        <div class="qr-url">${url}</div>
+        <div class="qr-info">
+          <div class="qr-title" title="${title}">${title}</div>
+          <div class="qr-url-container">
+            <input class="qr-url" type="text" value="${url}" readonly>
+            <button class="copy-url" title="复制链接">📋</button>
+          </div>
+          <div class="qr-tip">扫描二维码或复制链接分享</div>
+        </div>
       </div>
     `;
+
+    // 获取点击按钮的位置
+    const button = document.querySelector(`[data-url="${url}"]`);
+    const buttonRect = button.getBoundingClientRect();
 
     // 添加到文档中
     document.body.appendChild(modal);
 
+    // 计算弹窗位置
+    const qrContent = modal.querySelector('.qr-content');
+    const qrRect = qrContent.getBoundingClientRect();
+    
+    // 默认显示在按钮右侧
+    let left = buttonRect.right + 10;
+    let top = buttonRect.top - (qrRect.height / 2) + (buttonRect.height / 2);
+
+    // 如果右侧空间不足，显示在左侧
+    if (left + qrRect.width > window.innerWidth) {
+      left = buttonRect.left - qrRect.width - 10;
+    }
+
+    // 如果顶部超出视窗，调整到视窗内
+    if (top < 0) {
+      top = 10;
+    }
+
+    // 如果底部超出视窗，调整到视窗内
+    if (top + qrRect.height > window.innerHeight) {
+      top = window.innerHeight - qrRect.height - 10;
+    }
+
+    // 设置位置
+    qrContent.style.left = `${left}px`;
+    qrContent.style.top = `${top}px`;
+
     // 添加显示动画
     requestAnimationFrame(() => {
       modal.classList.add('show');
+    });
+
+    // 绑定复制链接功能
+    const copyBtn = modal.querySelector('.copy-url');
+    const urlInput = modal.querySelector('.qr-url');
+    copyBtn.addEventListener('click', () => {
+      urlInput.select();
+      document.execCommand('copy');
+      copyBtn.textContent = '✓';
+      setTimeout(() => copyBtn.textContent = '📋', 1000);
     });
 
     // 绑定关闭事件

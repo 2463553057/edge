@@ -913,4 +913,142 @@ body {
     transform: translateX(0);
   }
 }
+
+/* 添加相关度样式 */
+.item-relevance {
+  font-size: 12px;
+  color: #0078D4;
+  margin: 4px 0;
+  padding: 2px 8px;
+  background: rgba(0, 120, 212, 0.05);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 优化二维码弹窗样式 */
+.qr-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.qr-modal.show {
+  opacity: 1;
+}
+
+.qr-content {
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 300px;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.qr-modal.show .qr-content {
+  transform: scale(1);
+}
+
+.qr-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.qr-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.close-qr {
+  border: none;
+  background: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.close-qr:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.qr-code {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.qr-code img {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+}
+
+.qr-info {
+  padding: 0 20px 20px;
+}
+
+.qr-title {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qr-url-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.qr-url {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  background: #f8f9fa;
+}
+
+.copy-url {
+  padding: 8px;
+  border: none;
+  background: #0078D4;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-url:hover {
+  background: #006cbd;
+}
+
+.qr-tip {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
  
