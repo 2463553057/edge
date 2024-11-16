@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 标题栏 -->
+    <div class="title-bar">
+      <div class="title-content">
+        <img src="images/icon.svg" class="title-icon" alt="icon">
+        <span class="title-text">Edge 收藏夹搜索</span>
+      </div>
+      <div class="window-controls">
+        <button class="stats-btn" title="收藏夹统计">📊</button>
+        <button class="minimize-btn" title="最小化">─</button>
+        <button class="close-btn" title="关闭">×</button>
+      </div>
+    </div>
+
+    <!-- 搜索区域 -->
+    <div class="search-container">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索收藏夹...">
+        <span class="search-icon">🔍</span>
+      </div>
+      <div class="search-shortcut">Ctrl+Shift+F</div>
+    </div>
+
+    <!-- 过滤选项 -->
+    <div class="filter-bar">
+      <label class="checkbox-label">
+        <input type="checkbox" id="showFolders" checked>
+        <span>显示文件夹</span>
+      </label>
+      <select id="sortBy" class="sort-select">
+        <option value="relevance">相关度排序</option>
+        <option value="date">时间排序</option>
+        <option value="title">标题排序</option>
+      </select>
+    </div>
+
+    <!-- 结果区域 -->
+    <div class="results-container">
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <!-- 统计面板 -->
+  <div id="statsPanel" class="stats-panel">
+    <div class="stats-header">
+      <h2>收藏夹统计</h2>
+      <div class="stats-actions">
+        <button id="checkBrokenLinks" class="action-btn" title="检查失效链接">
+          <span class="btn-icon">🔍</span>
+          <span class="btn-text">检查失效链接</span>
+        </button>
+        <button class="close-stats" title="关闭">×</button>
+      </div>
+    </div>
+    <div class="stats-content">
+      <div class="stats-summary">
+        <div class="stat-item">
+          <div class="stat-icon">📚</div>
+          <div class="stat-label">总收藏数</div>
+          <div class="stat-value" id="totalBookmarks">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">📁</div>
+          <div class="stat-label">文件夹数</div>
+          <div class="stat-value" id="totalFolders">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-label">失效链接</div>
+          <div class="stat-value" id="brokenCount">-</div>
+        </div>
+      </div>
+
+      <div class="stats-details">
+        <div class="stats-section">
+          <div class="section-header">
+            <h3>🔗 失效链接</h3>
+            <div class="check-status" id="checkStatus"></div>
+          </div>
+          <div id="brokenLinks" class="broken-list">
+            <div class="loading-message">点击上方按钮开始检查失效链接</div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="section-header">
+            <h3>🕒 最近添加</h3>
+          </div>
+          <div id="recentBookmarks" class="recent-list"></div>
+        </div>
+
+        <div class="stats-section">
+          <div class="section-header">
+            <h3>🔄 重复收藏</h3>
+          </div>
+          <div id="duplicateBookmarks" class="duplicate-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bouncing-watermark">程序员98k</div>
+  <script src="popup.js"></script>
+</body>
+</html> 

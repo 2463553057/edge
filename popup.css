@@ -1,0 +1,624 @@
+body {
+  width: 360px;
+  height: 480px;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 120, 212, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  -webkit-app-region: drag;
+}
+
+.title-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+
+.title-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.window-controls {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+  border: none;
+  background: none;
+  color: white;
+  font-size: 14px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.window-controls button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.close-btn:hover {
+  background: #e81123 !important;
+}
+
+.search-container {
+  padding: 12px 16px 8px;
+}
+
+.search-box {
+  position: relative;
+}
+
+#searchInput {
+  width: 100%;
+  height: 32px;
+  padding: 0 32px 0 12px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+#searchInput:focus {
+  border-color: #0078D4;
+}
+
+.search-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.search-shortcut {
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.sort-select {
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.results-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 0 16px;
+  position: relative;
+}
+
+#results {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+  scroll-behavior: smooth;
+}
+
+.bookmark-item {
+  margin: 4px 0;
+  border-radius: 4px;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.bookmark-item:hover {
+  background-color: rgba(240, 247, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.item-header {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px;
+}
+
+.item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.item-path {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.item-url {
+  font-size: 12px;
+  color: #0078D4;
+  word-break: break-all;
+}
+
+.folder-item {
+  background: rgba(248, 249, 250, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border-left: 2px solid rgba(0, 120, 212, 0.8);
+  margin: 8px 0;
+}
+
+.folder-item .item-header {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.folder-item .item-icon {
+  color: #0078D4;
+  margin-right: 8px;
+}
+
+.folder-arrow {
+  margin-left: auto;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.folder-content {
+  display: none;
+  padding-left: 24px;
+  border-left: 1px solid #eee;
+}
+
+.folder-item.expanded .folder-content {
+  display: block;
+  animation: slideDown 0.2s ease-out;
+}
+
+.empty-folder {
+  padding: 12px;
+  color: #666;
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin: 8px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 120, 212, 0.3);
+  border-radius: 3px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 120, 212, 0.5);
+}
+
+mark {
+  background: rgba(255, 243, 205, 0.8);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+#bouncing-watermark {
+  position: fixed;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 120, 212, 0.5);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border-radius: 4px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 9999;
+  transition: color 0.3s;
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(0, 120, 212, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 统计面板样式 */
+.stats-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+.stats-panel.show {
+  display: flex;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 120, 212, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+}
+
+.stats-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.stats-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.close-stats {
+  border: none;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-stats:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.stats-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  background: rgba(248, 249, 250, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #0078D4;
+}
+
+/* 动画效果 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.folder-toggle {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #666;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.folder-toggle:hover {
+  background: rgba(0, 120, 212, 0.1);
+  color: #0078D4;
+}
+
+.folder-content {
+  display: none;
+  border-left: 1px solid #eee;
+  margin-left: 12px;
+}
+
+.folder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(240, 247, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border-bottom: 1px solid #e1f0ff;
+}
+
+.folder-title {
+  font-weight: 500;
+  color: #0078D4;
+}
+
+.folder-collapse {
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #0078D4;
+  color: #0078D4;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.folder-collapse:hover {
+  background: #0078D4;
+  color: white;
+}
+
+.folder-items {
+  padding: 8px 0 8px 12px;
+}
+
+.folder-item.expanded .folder-content {
+  display: block;
+  animation: slideDown 0.2s ease-out;
+}
+
+.empty-folder {
+  padding: 12px;
+  color: #666;
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin: 8px;
+}
+
+/* 动画效果 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 添加浮动收起按钮样式 */
+.floating-collapse-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 120, 212, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.floating-collapse-btn.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.floating-collapse-btn:hover {
+  background: rgba(0, 120, 212, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 添加动画效果 */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(20px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1) translateY(-5px);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(0.89) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.floating-collapse-btn.show {
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 动画优化 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 按钮通用样式 */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* 输入框焦点效果 */
+input:focus {
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.2);
+  outline: none;
+}
+
+/* 高亮文本样式 */
+mark {
+  background: rgba(255, 243, 205, 0.8);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+ 

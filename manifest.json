@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Edge 收藏夹搜索",
+  "version": "1.0",
+  "description": "搜索 Edge 浏览器收藏夹内容",
+  "permissions": [
+    "bookmarks",
+    "storage",
+    "contextMenus",
+    "tabs",
+    "windows"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon.svg",
+      "48": "images/icon.svg",
+      "128": "images/icon.svg"
+    }
+  },
+  "icons": {
+    "16": "images/icon.svg",
+    "48": "images/icon.svg",
+    "128": "images/icon.svg"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F"
+      },
+      "description": "打开收藏夹搜索"
+    }
+  },
+  "default_locale": "zh_CN"
+} 

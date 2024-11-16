@@ -1,0 +1,20 @@
+{
+  "extensionName": {
+    "message": "Edge Bookmarks Search"
+  },
+  "extensionDescription": {
+    "message": "Search through Edge browser bookmarks"
+  },
+  "searchPlaceholder": {
+    "message": "Search bookmarks..."
+  },
+  "noResults": {
+    "message": "No bookmarks found"
+  },
+  "loading": {
+    "message": "Searching..."
+  },
+  "error": {
+    "message": "Search error: $1"
+  }
+} 

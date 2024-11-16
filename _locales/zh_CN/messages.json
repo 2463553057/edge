@@ -1,0 +1,20 @@
+{
+  "extensionName": {
+    "message": "Edge 收藏夹搜索"
+  },
+  "extensionDescription": {
+    "message": "搜索 Edge 浏览器收藏夹内容"
+  },
+  "searchPlaceholder": {
+    "message": "搜索收藏夹..."
+  },
+  "noResults": {
+    "message": "未找到匹配的收藏"
+  },
+  "loading": {
+    "message": "搜索中..."
+  },
+  "error": {
+    "message": "搜索出错: $1"
+  }
+} 
