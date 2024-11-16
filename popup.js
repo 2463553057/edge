@@ -5,53 +5,22 @@ class BookmarkSearch {
     this.resultsDiv = document.getElementById('results');
     this.showFolders = document.getElementById('showFolders');
     this.sortBy = document.getElementById('sortBy');
+    
+    this.pageSize = 5;
+    this.currentPage = 1;
+    this.searchResults = [];
 
     this.init();
-    this.addFloatingCollapseButton();
   }
 
   init() {
-    this.searchInput.addEventListener('input', debounce(() => this.handleSearch(), 300));
+    this.searchInput.addEventListener('input', debounce(() => {
+      this.currentPage = 1;
+      this.handleSearch();
+    }, 300));
     this.showFolders.addEventListener('change', () => this.handleSearch());
     this.sortBy.addEventListener('change', () => this.handleSearch());
     this.searchInput.focus();
-  }
-
-  addFloatingCollapseButton() {
-    // 创建浮动收起按钮
-    const floatingBtn = document.createElement('button');
-    floatingBtn.className = 'floating-collapse-btn';
-    floatingBtn.innerHTML = '收起文件夹 ▲';
-    document.body.appendChild(floatingBtn);
-
-    // 监听滚动事件
-    this.resultsDiv.addEventListener('scroll', () => {
-      const expandedFolders = this.resultsDiv.querySelectorAll('.folder-item.expanded');
-      if (expandedFolders.length > 0 && this.resultsDiv.scrollTop > 100) {
-        floatingBtn.classList.add('show');
-      } else {
-        floatingBtn.classList.remove('show');
-      }
-    });
-
-    // 点击收起所有展开的文件夹
-    floatingBtn.addEventListener('click', () => {
-      const expandedFolders = this.resultsDiv.querySelectorAll('.folder-item.expanded');
-      expandedFolders.forEach(folder => {
-        const toggleIcon = folder.querySelector('.toggle-icon');
-        const folderItems = folder.querySelector('.folder-items');
-        folder.classList.remove('expanded');
-        if (toggleIcon) toggleIcon.textContent = '▶';
-        if (folderItems) folderItems.innerHTML = '';
-      });
-      floatingBtn.classList.remove('show');
-      
-      // 平滑滚动到顶部
-      this.resultsDiv.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
   }
 
   async handleSearch() {
@@ -74,21 +43,173 @@ class BookmarkSearch {
       );
 
       filteredBookmarks = this.sortBookmarks(filteredBookmarks, this.sortBy.value, query);
+      this.searchResults = filteredBookmarks;
 
       if (filteredBookmarks.length === 0) {
         this.resultsDiv.innerHTML = '<div class="empty-state">未找到相关结果</div>';
         return;
       }
 
-      this.resultsDiv.innerHTML = '';
-      for (const bookmark of filteredBookmarks) {
-        const path = await this.getBookmarkPath(bookmark.id);
-        const item = this.createBookmarkItem(bookmark, path, query);
-        this.resultsDiv.appendChild(item);
-      }
+      await this.updateResultsList(query);
     } catch (error) {
       this.resultsDiv.innerHTML = `<div class="error">搜索出错: ${error.message}</div>`;
     }
+  }
+
+  async updateResultsList(query) {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    const pageItems = this.searchResults.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(this.searchResults.length / this.pageSize);
+
+    let resultsHtml = `
+      <div class="results-count">找到 ${this.searchResults.length} 个结果</div>
+      <div class="results-list">
+    `;
+
+    // 等待所有书签路径获取完成
+    for (const bookmark of pageItems) {
+      const path = await this.getBookmarkPath(bookmark.id);
+      resultsHtml += this.createBookmarkItem(bookmark, path, query);
+    }
+
+    resultsHtml += `
+      </div>
+      <div class="pagination">
+        <button class="page-btn first" data-action="first" ${this.currentPage === 1 ? 'disabled' : ''}>
+          ⏮
+        </button>
+        <button class="page-btn prev" data-action="prev" ${this.currentPage === 1 ? 'disabled' : ''}>
+          ◀
+        </button>
+        <span class="page-info">${this.currentPage}/${totalPages}</span>
+        <button class="page-btn next" data-action="next" ${this.currentPage === totalPages ? 'disabled' : ''}>
+          ▶
+        </button>
+        <button class="page-btn last" data-action="last" ${this.currentPage === totalPages ? 'disabled' : ''}>
+          ⏭
+        </button>
+      </div>
+    `;
+
+    this.resultsDiv.innerHTML = resultsHtml;
+    
+    // 绑定事件
+    this.bindEvents();
+    this.bindPaginationEvents(totalPages);
+  }
+
+  bindEvents() {
+    // 绑定打开链接事件
+    this.resultsDiv.querySelectorAll('[data-action="open"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = btn.dataset.url;
+        if (url) chrome.tabs.create({ url });
+      });
+    });
+
+    // 绑定分享事件
+    this.resultsDiv.querySelectorAll('[data-action="share"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = btn.dataset.url;
+        const title = btn.dataset.title;
+        if (url) this.showQRCode(url, title);
+      });
+    });
+
+    // 绑定文件夹展开/收起事件
+    this.resultsDiv.querySelectorAll('.folder-toggle').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const folderId = btn.dataset.id;
+        const folderItem = btn.closest('.folder-item');
+        const folderContent = folderItem.querySelector('.folder-content');
+        const toggleIcon = btn.querySelector('.toggle-icon');
+
+        if (folderItem.classList.contains('expanded')) {
+          folderItem.classList.remove('expanded');
+          toggleIcon.textContent = '▶';
+          folderContent.querySelector('.folder-items').innerHTML = '';
+        } else {
+          folderItem.classList.add('expanded');
+          toggleIcon.textContent = '▼';
+          
+          try {
+            const children = await chrome.bookmarks.getChildren(folderId);
+            const folderItems = folderContent.querySelector('.folder-items');
+            folderItems.innerHTML = '';
+            
+            for (const child of children) {
+              const childPath = await this.getBookmarkPath(child.id);
+              folderItems.innerHTML += this.createBookmarkItem(child, childPath, this.searchInput.value.trim());
+            }
+            
+            // 为新添加的项目绑定事件
+            this.bindEvents();
+          } catch (error) {
+            folderContent.innerHTML = '<div class="error">加载失败</div>';
+          }
+        }
+      });
+    });
+  }
+
+  bindPaginationEvents(totalPages) {
+    const buttons = this.resultsDiv.querySelectorAll('.page-btn');
+    buttons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const action = button.dataset.action;
+        switch (action) {
+          case 'first':
+            this.currentPage = 1;
+            break;
+          case 'prev':
+            this.currentPage = Math.max(1, this.currentPage - 1);
+            break;
+          case 'next':
+            this.currentPage = Math.min(totalPages, this.currentPage + 1);
+            break;
+          case 'last':
+            this.currentPage = totalPages;
+            break;
+        }
+        
+        // 先滚动到顶部，再更新内容
+        this.scrollToTop();
+        await this.updateResultsList(this.searchInput.value.trim());
+      });
+    });
+  }
+
+  scrollToTop() {
+    // 直接滚动结果区域
+    this.resultsDiv.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+
+    // 同时滚动父容器
+    const container = this.resultsDiv.closest('.container');
+    if (container) {
+      container.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    // 滚动整个文档
+    document.body.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+
+    // 兜底方案：直接设置滚动位置
+    this.resultsDiv.scrollTop = 0;
+    if (container) container.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
   }
 
   async getBookmarkPath(id) {
@@ -104,161 +225,38 @@ class BookmarkSearch {
   }
 
   createBookmarkItem(bookmark, path, query) {
-    const item = document.createElement('div');
     const isFolder = !bookmark.url;
     
-    item.className = `bookmark-item ${isFolder ? 'folder-item' : 'bookmark-item'}`;
-    
-    item.innerHTML = `
-      <div class="item-header">
-        <div class="item-icon">${isFolder ? '📁' : '🔖'}</div>
-        <div class="item-content">
-          <div class="item-title">${this.highlight(bookmark.title, query)}</div>
-          <div class="item-path">${path}</div>
+    // 返回 HTML 字符串而不是 DOM 元素
+    return `
+      <div class="bookmark-item ${isFolder ? 'folder-item' : 'bookmark-item'}">
+        <div class="item-header">
+          <div class="item-icon">${isFolder ? '📁' : '🔖'}</div>
+          <div class="item-content">
+            <div class="item-title">${this.highlight(bookmark.title, query)}</div>
+            <div class="item-path">${path}</div>
+            ${bookmark.url ? `
+              <div class="item-url">${this.highlight(bookmark.url, query)}</div>
+            ` : ''}
+          </div>
           ${bookmark.url ? `
-            <div class="item-url">${this.highlight(bookmark.url, query)}</div>
             <div class="item-actions">
-              <button class="share-btn" title="分享二维码">
-                <span class="share-icon">🔗</span>
-              </button>
+              <button class="item-action" data-action="open" title="打开" data-url="${bookmark.url}">🔗</button>
+              <button class="item-action" data-action="share" title="分享" data-url="${bookmark.url}" data-title="${bookmark.title}">📤</button>
             </div>
-          ` : ''}
+          ` : `
+            <button class="folder-toggle" title="展开/收起" data-id="${bookmark.id}">
+              <span class="toggle-icon">▶</span>
+            </button>
+          `}
         </div>
         ${isFolder ? `
-          <button class="folder-toggle" title="展开/收起">
-            <span class="toggle-icon">▶</span>
-          </button>
+          <div class="folder-content" data-folder-id="${bookmark.id}">
+            <div class="folder-items"></div>
+          </div>
         ` : ''}
       </div>
-      ${isFolder ? `
-        <div class="folder-content">
-          <div class="folder-header">
-            <span class="folder-title">${bookmark.title}</span>
-            <button class="folder-collapse" title="收起文件夹">收起</button>
-          </div>
-          <div class="folder-items"></div>
-        </div>
-      ` : ''}
-      
-      <!-- 二维码弹窗 -->
-      ${bookmark.url ? `
-        <div class="qr-modal">
-          <div class="qr-content">
-            <div class="qr-header">
-              <h3>分享链接</h3>
-              <button class="close-qr">×</button>
-            </div>
-            <div class="qr-code">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookmark.url)}" 
-                   alt="QR Code" 
-                   title="${bookmark.title}">
-            </div>
-            <div class="qr-title">${bookmark.title}</div>
-            <div class="qr-url">${bookmark.url}</div>
-          </div>
-        </div>
-      ` : ''}
     `;
-
-    if (!isFolder) {
-      // 绑定分享按钮事件
-      const shareBtn = item.querySelector('.share-btn');
-      const qrModal = item.querySelector('.qr-modal');
-      const closeQr = item.querySelector('.close-qr');
-      
-      shareBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        
-        // 先关闭所有其他打开的二维码弹窗
-        document.querySelectorAll('.qr-modal.show').forEach(modal => {
-          if (modal !== qrModal) {
-            modal.classList.remove('show');
-          }
-        });
-        
-        // 显示当前二维码
-        qrModal.classList.add('show');
-      });
-
-      // 关闭二维码弹窗
-      closeQr.addEventListener('click', (e) => {
-        e.stopPropagation();
-        qrModal.classList.remove('show');
-      });
-
-      // 点击弹窗外部关闭
-      qrModal.addEventListener('click', (e) => {
-        if (e.target === qrModal) {
-          qrModal.classList.remove('show');
-        }
-      });
-
-      // ESC 键关闭当前打开的弹窗
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && qrModal.classList.contains('show')) {
-          qrModal.classList.remove('show');
-        }
-      });
-
-      // 书签点击处理
-      item.addEventListener('click', () => {
-        chrome.tabs.create({ url: bookmark.url });
-      });
-    }
-
-    if (isFolder) {
-      const toggleBtn = item.querySelector('.folder-toggle');
-      const collapseBtn = item.querySelector('.folder-collapse');
-      const folderContent = item.querySelector('.folder-content');
-      const folderItems = item.querySelector('.folder-items');
-      const toggleIcon = item.querySelector('.toggle-icon');
-
-      // 展开/收起按钮点击
-      toggleBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const isExpanded = item.classList.contains('expanded');
-        
-        if (isExpanded) {
-          // 收起
-          item.classList.remove('expanded');
-          toggleIcon.textContent = '▶';
-          folderItems.innerHTML = '';
-        } else {
-          // 展开
-          item.classList.add('expanded');
-          toggleIcon.textContent = '▼';
-          
-          try {
-            const children = await chrome.bookmarks.getChildren(bookmark.id);
-            folderItems.innerHTML = '';
-            
-            if (children.length === 0) {
-              folderItems.innerHTML = '<div class="empty-folder">空文件夹</div>';
-              return;
-            }
-
-            for (const child of children) {
-              const childPath = await this.getBookmarkPath(child.id);
-              const childItem = this.createBookmarkItem(child, childPath, query);
-              folderItems.appendChild(childItem);
-            }
-          } catch (error) {
-            folderItems.innerHTML = '<div class="error">加载失败</div>';
-            console.error('Failed to load folder contents:', error);
-          }
-        }
-      });
-
-      // 收起按钮点击
-      collapseBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        item.classList.remove('expanded');
-        toggleIcon.textContent = '▶';
-        folderItems.innerHTML = '';
-      });
-    }
-
-    return item;
   }
 
   highlight(text, query) {
@@ -298,6 +296,9 @@ class BookmarkStats {
     this.statsBtn = document.querySelector('.stats-btn');
     this.statsPanel = document.getElementById('statsPanel');
     this.closeStatsBtn = document.querySelector('.close-stats');
+    this.pageSize = 5; // 每页显示数量
+    this.currentPage = 1;
+    this.recentBookmarks = [];
     this.init();
   }
 
@@ -403,7 +404,8 @@ class BookmarkStats {
     this.updateElement('brokenCount', stats.duplicates.size);
 
     // 更新最近添加列表
-    this.updateRecentBookmarks(stats.recent);
+    this.recentBookmarks = stats.recent.sort((a, b) => b.dateAdded - a.dateAdded);
+    this.updateRecentBookmarksList();
 
     // 更新重复书签列表
     this.updateDuplicateBookmarks(stats.duplicates);
@@ -416,29 +418,152 @@ class BookmarkStats {
     }
   }
 
-  updateRecentBookmarks(recentBookmarks) {
-    const container = document.getElementById('recentBookmarks');
-    if (!container) return;
+  updateRecentBookmarksList() {
+    const recentList = document.getElementById('recentBookmarks');
+    if (!recentList) return;
 
-    container.innerHTML = recentBookmarks.map(bookmark => `
-      <div class="recent-item" data-url="${bookmark.url}">
-        <div class="item-icon">🔖</div>
-        <div class="item-content">
-          <div class="item-title">${this.escapeHtml(bookmark.title)}</div>
-          <div class="item-url">${this.escapeHtml(bookmark.url)}</div>
-          <div class="item-time">${this.formatDate(bookmark.dateAdded)}</div>
-        </div>
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    const pageItems = this.recentBookmarks.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(this.recentBookmarks.length / this.pageSize);
+
+    recentList.innerHTML = `
+      <div class="recent-items">
+        ${pageItems.map(bookmark => `
+          <div class="recent-item">
+            <div class="item-icon">🔖</div>
+            <div class="item-content">
+              <div class="item-title">${this.escapeHtml(bookmark.title)}</div>
+              <div class="item-url">${this.escapeHtml(bookmark.url)}</div>
+              <div class="item-time">${this.formatDate(bookmark.dateAdded)}</div>
+            </div>
+            <div class="item-actions">
+              <button class="item-action" data-action="open" title="打开">🔗</button>
+              <button class="item-action" data-action="share" title="分享">📤</button>
+            </div>
+          </div>
+        `).join('')}
       </div>
-    `).join('');
+      <div class="pagination">
+        <button class="page-btn first" data-action="first" ${this.currentPage === 1 ? 'disabled' : ''}>
+          ⏮
+        </button>
+        <button class="page-btn prev" data-action="prev" ${this.currentPage === 1 ? 'disabled' : ''}>
+          ◀
+        </button>
+        <span class="page-info">${this.currentPage}/${totalPages}</span>
+        <button class="page-btn next" data-action="next" ${this.currentPage === totalPages ? 'disabled' : ''}>
+          ▶
+        </button>
+        <button class="page-btn last" data-action="last" ${this.currentPage === totalPages ? 'disabled' : ''}>
+          ⏭
+        </button>
+      </div>
+    `;
 
-    // 添加点击事件
-    container.querySelectorAll('.recent-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const url = item.dataset.url;
-        if (url) {
+    // 绑定分页按钮事件
+    this.bindPaginationEvents(recentList, totalPages);
+    // 绑定操作按钮事件
+    this.bindRecentItemActions(recentList);
+  }
+
+  bindPaginationEvents(container, totalPages) {
+    const buttons = container.querySelectorAll('.page-btn');
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.action;
+        switch (action) {
+          case 'first':
+            this.currentPage = 1;
+            break;
+          case 'prev':
+            this.currentPage = Math.max(1, this.currentPage - 1);
+            break;
+          case 'next':
+            this.currentPage = Math.min(totalPages, this.currentPage + 1);
+            break;
+          case 'last':
+            this.currentPage = totalPages;
+            break;
+        }
+        
+        // 更新列表
+        this.updateRecentBookmarksList();
+        
+        // 平滑滚动到顶部
+        this.scrollToTop(container);
+      });
+    });
+  }
+
+  scrollToTop(container) {
+    // 滚动统计面板内容
+    const statsContent = container.closest('.stats-content');
+    if (statsContent) {
+      statsContent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+      
+      // 兜底方案
+      statsContent.scrollTop = 0;
+    }
+
+    // 滚动整个面板
+    const statsPanel = container.closest('.stats-panel');
+    if (statsPanel) {
+      statsPanel.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+      statsPanel.scrollTop = 0;
+    }
+  }
+
+  bindRecentItemActions(container) {
+    container.querySelectorAll('.item-action').forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = button.closest('.recent-item');
+        const url = item.querySelector('.item-url').textContent;
+        const action = button.dataset.action;
+
+        if (action === 'open') {
           chrome.tabs.create({ url });
+        } else if (action === 'share') {
+          this.showQRCode(url, item.querySelector('.item-title').textContent);
         }
       });
+    });
+  }
+
+  showQRCode(url, title) {
+    // 显示二维码弹窗
+    const modal = document.createElement('div');
+    modal.className = 'qr-modal show';
+    modal.innerHTML = `
+      <div class="qr-content">
+        <div class="qr-header">
+          <h3>分享链接</h3>
+          <button class="close-qr">×</button>
+        </div>
+        <div class="qr-code">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" 
+               alt="QR Code" 
+               title="${title}">
+        </div>
+        <div class="qr-title">${title}</div>
+        <div class="qr-url">${url}</div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 绑定关闭事件
+    const closeBtn = modal.querySelector('.close-qr');
+    closeBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
     });
   }
 
@@ -527,9 +652,48 @@ function debounce(func, wait) {
   };
 }
 
-// 初始化
+// 初始化工具栏控制
+class ToolbarControls {
+  constructor() {
+    this.statsBtn = document.querySelector('.stats-btn');
+    this.minimizeBtn = document.querySelector('.minimize-btn');
+    this.closeBtn = document.querySelector('.close-btn');
+    
+    this.init();
+  }
+
+  init() {
+    if (this.statsBtn) {
+      this.statsBtn.addEventListener('click', () => {
+        const statsPanel = document.getElementById('statsPanel');
+        if (statsPanel) {
+          statsPanel.classList.toggle('show');
+          if (statsPanel.classList.contains('show')) {
+            new BookmarkStats().loadStats();
+          }
+        }
+      });
+    }
+
+    if (this.minimizeBtn) {
+      this.minimizeBtn.addEventListener('click', () => {
+        chrome.windows.getCurrent(window => {
+          chrome.windows.update(window.id, { state: 'minimized' });
+        });
+      });
+    }
+
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener('click', () => {
+        window.close();
+      });
+    }
+  }
+}
+
+// 初始化所有功能
 document.addEventListener('DOMContentLoaded', () => {
   new BookmarkSearch();
-  new BookmarkStats();
-  new BouncingWatermark();
+  new ToolbarControls();
+  new WatermarkAnimation();
 }); 
